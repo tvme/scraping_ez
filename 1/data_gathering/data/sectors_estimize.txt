@@ -1,0 +1,10 @@
+Consumer Discretionary
+Consumer Staples
+Energy
+Financials
+Health Care
+Industrials
+Information Technology
+Materials
+Telecommunication Services
+Utilities
