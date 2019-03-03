@@ -5,8 +5,8 @@ scraping eztimize history data
    дата ближайшего аннонса и время (BMO or AMC), sector по классификации Estimize
    TODO: Должен загружаться ежедневно. Добавить поле о числе оценок, заполнять его при считывании данных EPS&Revenue
 2. Данные EPS&Revenue: 
-   MultiIndex: metric,calendar_qrt,sources
-   2 колонки на компанию: tic_qrt, tic т.е. будет ~ 4000 колонок
+   MultiIndex: level_0 - calendar_qrt, level_1 - sources
+   3 колонки на компанию - column MultiIndex: level_0 - тикер, level_1 - tic_qrt, eps, revenue т.е. будет ~ 6000 колонок
    если 404 ошибка, в колонку не пишется ничего
    Предполагается единый файл: исторические данные + ежедневно дописываем текущие
 3. Отчет о загрузках:
