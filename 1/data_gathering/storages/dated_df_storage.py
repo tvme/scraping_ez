@@ -30,7 +30,9 @@ def write_ddf(df, date_str, suff, dir_name):
 
 class DatedDfStorage(DatedStorage):
     '''
-
+    for read/write DataFrame into dated file.
+    Params class object: date, suffix, dir_name.
+    DataFrame send into class object
     '''
     def __init__(self, date, suffix, dir_name):
         self.dir_name = dir_name

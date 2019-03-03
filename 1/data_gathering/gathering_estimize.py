@@ -3,6 +3,7 @@ import logging
 import sys
 import argparse
 import os
+import time
 import datetime
 import pandas as pd
 
@@ -15,8 +16,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-DIR_TICKERS_DATA = os.getcwd() + '/data/tickers'  # папка по умолчанию
-FILE_SECTORS_DATA = os.getcwd() + '/data/sectors_estimize.txt'  # папка по умолчанию
+DIR_TICKERS_DATA = os.getcwd() + '/data/tickers'  # папка по умолчанию для списка тикеров
+DIR_HISTORY_DATA = os.getcwd() + '/data/history'  # папка по умолчанию для исторических данных
+FILE_SECTORS_DATA = os.getcwd() + '/data/sectors_estimize.txt'  # файл по умолчанию со списком секторов
 
 
 def create_parser():
@@ -30,14 +32,16 @@ def create_parser():
         )
 
     gather_tic_parcer = subparcers.add_parser('gather_tickers')
-    gather_tic_parcer.add_argument('-d', '--dir', default=DIR_TICKERS_DATA,
+    gather_tic_parcer.add_argument('--dir', default=DIR_TICKERS_DATA,
                                    help='Directory for tickers file, optional, default directory: {dir}'.format(dir=DIR_TICKERS_DATA))
-    gather_tic_parcer.add_argument('-n', '--name', default=FILE_SECTORS_DATA,
+    gather_tic_parcer.add_argument('--name', default=FILE_SECTORS_DATA,
                                    help='File name source sectors list, optional, default filename: {nm}'.format(nm=FILE_SECTORS_DATA))
 
     initial_gather_parcer = subparcers.add_parser('initial_pass')
-    initial_gather_parcer.add_argument('-d', '--dir', default=DIR_TICKERS_DATA,
+    initial_gather_parcer.add_argument('--dir_tic', default=DIR_TICKERS_DATA,
                                        help='Directory for tickers file, optional, default directory: {dir}'.format(dir=DIR_TICKERS_DATA))
+    initial_gather_parcer.add_argument('--dir_dt', default=DIR_HISTORY_DATA,
+                                       help='Directory for data file, optional, default directory: {dir}'.format(dir=DIR_HISTORY_DATA))
     initial_gather_parcer.add_argument('--date', default=datetime.date.today().strftime('%Y-%m-%d'),
                                        help='Tickers list date produced, optional, default is today date')
 
@@ -58,13 +62,23 @@ def gather_tickers(names, base_url):
 
 
 def initial_gather_data(names, base_url):
+    start = time.time()
     logger.info("Initial gathering EPS&revenue data started")
     date_tickers_parsing = datetime.datetime.strptime(names.date, '%Y-%m-%d')
     tickers_storage = DatedDfStorage(date=date_tickers_parsing,
                                      suffix='tickers_test',  # суфикс для тестового файла
-                                     dir_name=names.dir)
+                                     dir_name=names.dir_tic)
     tickers_df = tickers_storage.read_dated_df()
-    print(tickers_df)
+    tickers_df.set_index('tic', inplace=True)  
+    df = get_history_data(date_tickers_parsing, tickers_df)
+    print('Completed {n} quarters for {m} tickers download in {t} seconds'.format(n=df.shape[0] / 8,  # 8 полей из таблицы
+                                                                                  m=df.shape[1] / 3,  # 3 colunms for ticker
+                                                                                  t=time.time() - start))
+
+    dt_storage = DatedDfStorage(date=pd.Timestamp(date_tickers_parsing).date(),
+                                     suffix='history_data',
+                                     dir_name=names.dir_dt)
+    dt_storage.write_dated_df(df)
     logger.info("Gathering historical EPS&revenue ended")
 
 

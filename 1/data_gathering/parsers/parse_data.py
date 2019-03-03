@@ -53,12 +53,14 @@ def quarter2ez(q_str):
 
 
 def get_quarter_page_list(q_start):
-    # create list if quarter dates to parsing pages
+    # create list of quarter dates for URLs parsing pages
     y_strt, q_strt = [int(s) for s in q_start.split('Q')]
+    q_count = y_strt * 4 + q_strt - 1  # -1 т.к. добавляем при вычислении кварталов
     q_str_lst = []
     for n_q in range(6, 70, 12):  # начальный откат на 6 кварталов, потом по 3 года - 12 кварталов
-        y = y_strt - n_q // 4
-        q = q_strt - n_q % 4
+        _q_count = q_count - n_q
+        y = _q_count // 4
+        q = 1 + _q_count % 4  # +1, чтобы не было 0-вых кварталов
         q_str_lst.append(str(y) + 'Q' + str(q))
     return q_str_lst
 
@@ -99,36 +101,54 @@ def compute_q_shift(current_dt, company_qrt):
 
 
 def transform_df_to_concat(tic_str, mertic_str, q_shift, df):
-    company_qrt_col_nm = tic_str + '_qrt'
     s = df.unstack()  # transform to series
-    df_out = s.reset_index()
-    df_out.rename({'level_0':company_qrt_col_nm, 0:tic_str}, axis='columns', inplace=True)
-    df_out['metric'] = mertic_str
-    df_out[company_qrt_col_nm] = pd.to_datetime(df_out[company_qrt_col_nm]).dt.to_period('Q')
-    df_out['calendar_qrt'] = df_out[company_qrt_col_nm] - q_shift
-
-    return df_out.set_index(['metric', 'calendar_qrt', 'sources'])
+    s_out = s.reset_index()
+    s_out.rename({'level_0': 'qrt', 0: mertic_str}, axis='columns', inplace=True)
+    s_out['qrt'] = pd.to_datetime(s_out['qrt']).dt.to_period('Q')
+    s_out['calendar_qrt'] = s_out['qrt'] - q_shift
+    s_out = s_out.set_index(['calendar_qrt', 'sources', 'qrt'])  # ставлю qrt в индекс, после склеивания в столбец
+    return s_out
 
 
 def parse_ticker_data(tic_str, q_shift, date_str_lst, metric_str_lst, base_url):
-    # create urls list, parse data, convert to Pandas series, concat in serie for  ticker
+    '''
+    scraping data for ONE ticker
+    create urls list, parse data, convert to Pandas series, concat in serie for one ticker
+    '''
     urls = [base_url.format(ticker=tic_str, quarter=quarter2ez(q_str), metric_name=met_str) for q_str in date_str_lst
                                                                                             for met_str in metric_str_lst]
     scraper = Scrapper()
     # скачаем таблицы данных в текстовом формате
-    # <table class="rel-chart-tbl">
-    # class ="release-header-information-breadcrumb"
+    # <table class="rel-chart-tbl">       селектор для таблицы
+    # class ="release-header-information-breadcrumb"          селектор для сектора
     table_txt_list = scraper.scrap_slenium(urls, LOCATOR_PATHS)
-    s_lst = []
+    concat_dict = {}  # словарь для списков первоначальных series, keys - метрики (EPS, revenue)
     for tb_txt in table_txt_list:
         if tb_txt['metric_table']is not None:
             mtrc, df = parse_table_txt(tb_txt['metric_table'])
-            s_lst.append(transform_df_to_concat(tic_str=tic_str, mertic_str=mtrc, q_shift=q_shift, df=df))  # get series list
-    # нужно добавить индекс календарного квартала : TODO
-    return pd.concat(s_lst).sort_index(level='calendar_qrt')
+            s = transform_df_to_concat(tic_str=tic_str, mertic_str=mtrc, q_shift=q_shift, df=df)
+            try:  # каждая series лежат в mtrc-именованом lst
+                concat_dict[mtrc] = concat_dict[mtrc] + [s]
+            except KeyError:
+                concat_dict[mtrc] = [s]
+    concat_lst = []  # list для склеивания по метрикам - горизонтально
+    i = 0
+    for mtrc, s_lst in concat_dict.items():
+        _s = pd.concat(s_lst, axis=0).sort_index()
+        _s = _s[~_s.index.duplicated()]  # дубли могут возникать в начале и конце диапазонов, если отображаест меньше чем 3 года
+        concat_lst.append(_s)  # склеили series вертикально для кождой mtrc
+    df_out = pd.concat(concat_lst, axis=1, sort=True).reset_index(level='qrt').sort_index(level=['calendar_qrt', 'sources']) # склеили горизонтально
+    df_out.columns = pd.MultiIndex.from_product([[tic_str], df_out.columns])  # добавили в колонки MultiIndex, level_0 => ticker
+    return df_out
 
 
 def get_history_data(current_date, tics_df):
+    '''
+
+    :param current_date: текущая дата
+    :param tics_df: df загруженный из файла, index - tic
+    :return: DataFrame, colunms.multiinrx
+    '''
     tics_df.set_index('tic', inplace=True)
     tic_df_list = []
     for index, row in tics_df.iterrows():
@@ -141,7 +161,7 @@ def get_history_data(current_date, tics_df):
                                              date_str_lst=date_str_lst,
                                              metric_str_lst=METRICS,
                                              base_url=URL))
-    return pd.concat(tic_df_list, axis=1)
+    return pd.concat(tic_df_list, axis=1)  # склеили тикеры
 
 
 
