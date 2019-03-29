@@ -1,0 +1,17 @@
+1. после RGR строка 265 и до RRGB строка 271 возникла ошибка:
+Traceback (most recent call last):
+  File "C:/Users/ersan/PycharmProjects/DS_OTUS/1/data_gathering/gathering_estimize.py", line 108, in <module>
+    initial_gather_data(namespace, base_url=url)
+  File "C:/Users/ersan/PycharmProjects/DS_OTUS/1/data_gathering/gathering_estimize.py", line 83, in initial_gather_data
+    _df = get_history_data(date_tickers_parsing, _tic_df)
+  File "C:\Users\ersan\PycharmProjects\DS_OTUS\1\data_gathering\parsers\parse_data.py", line 162, in get_history_data
+    base_url=URL))
+  File "C:\Users\ersan\PycharmProjects\DS_OTUS\1\data_gathering\parsers\parse_data.py", line 128, in parse_ticker_data
+    mtrc, df = parse_table_txt(tb_txt['metric_table'])
+  File "C:\Users\ersan\PycharmProjects\DS_OTUS\1\data_gathering\parsers\parse_data.py", line 88, in parse_table_txt
+    columns_nm = ['sources'] + [ez2qurter_slen('F' + s) for  s in line_txt_lst[0].split(' F')[1:]]  # 1-st line without 1-st item
+  File "C:\Users\ersan\PycharmProjects\DS_OTUS\1\data_gathering\parsers\parse_data.py", line 88, in <listcomp>
+    columns_nm = ['sources'] + [ez2qurter_slen('F' + s) for  s in line_txt_lst[0].split(' F')[1:]]  # 1-st line without 1-st item
+  File "C:\Users\ersan\PycharmProjects\DS_OTUS\1\data_gathering\parsers\parse_data.py", line 46, in ez2qurter_slen
+    q_str, y_str = ez_q_str[1:].split(" '")
+ValueError: not enough values to unpack (expected 2, got 1)

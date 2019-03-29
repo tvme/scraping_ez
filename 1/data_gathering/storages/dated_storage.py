@@ -6,7 +6,7 @@ class DatedStorage(object):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def read_dated_df(self):
+    def read_dated_df(self, **kwargs):
         raise NotImplementedError
 
     @abc.abstractmethod

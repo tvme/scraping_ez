@@ -8,8 +8,10 @@ from scrappers.scrapper import Scrapper
 
 MAX_TICKERS = '999' # максимальное количество тикеров на странице сектора
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+
 
 def parse_sectors_txt(f_name):
     sector_lst = []
@@ -65,6 +67,11 @@ def get_tickers_df(f_sectors_nm, tickers_url):
 
 
 if __name__ == '__main__':
+    ch = logging.StreamHandler()
+    formatter = logging.Formatter('%(levelname)s:%(name)s: %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    logger.propagate = False
     url = 'https://www.estimize.com/sectors/{sector}?per={max_tickers}'
     # f_name = './data/subsectors_estimize.txt'
     f_name = './data/sectors_estimize.txt'

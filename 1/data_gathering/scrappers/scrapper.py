@@ -66,7 +66,7 @@ class Scrapper(object):
                                                 until(EC.element_to_be_clickable((By.CLASS_NAME, c_nm))).text
                                          for p_loc, c_nm in class_dict.items()})
                     # locator is a tuple of (by, path)
-                    print('URL successfully load in {t_s} sec'.format(t_s=time.time() - t_start))
+                    # print('URL successfully load in {t_s} sec'.format(t_s=time.time() - t_start))
                 except TimeoutException as e:
                     print("Page load Timeout Occured. Quiting !!!")
                 finally:

@@ -6,8 +6,8 @@ import pandas as pd
 
 from storages.dated_storage import DatedStorage
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def write_ddf(df, date_str, suff, dir_name):
@@ -21,10 +21,10 @@ def write_ddf(df, date_str, suff, dir_name):
     '''
     f_name = dir_name + '/' + date_str + '_' + suff + '.csv'
     if os.path.exists(dir_name) or os.path.exists('./' + dir_name):
-        logger.info('Save tickers table in {f_nm}'.format(f_nm=f_name))
+        logger.debug('Save data table in {f_nm}'.format(f_nm=f_name))
     else:  # save file in castom dir
         os.makedirs(dir_name)
-        logger.info('Create folder and save tickers table in {f_nm}'.format(f_nm=f_name))
+        logger.debug('Create folder and save data table in {f_nm}'.format(f_nm=f_name))
     df.to_csv(f_name)
 
 
@@ -39,17 +39,17 @@ class DatedDfStorage(DatedStorage):
         self.date = date
         self.suffix = suffix
 
-    def read_dated_df(self):
+    def read_dated_df(self, **kwargs):
         f_name = '{dir_path}/{date_str}_{suffix}.csv'.format(dir_path=self.dir_name,
                                                              date_str=self.date.strftime('%Y-%m-%d'),
                                                              suffix=self.suffix)
         if not os.path.exists(f_name):
-            logger.info("File {f_n} dosn't exist".format(f_n=f_name))
-            raise StopIteration
+            logger.debug("File {f_n} dosn't exist".format(f_n=f_name))
+            raise FileNotFoundError
 
         with open(f_name) as f:
-            logger.info('Read {f_n}'.format(f_n=f_name))
-            return pd.read_csv(f_name)
+            logger.debug('Read {f_n}'.format(f_n=f_name))
+            return pd.read_csv(f_name, **kwargs)
 
 
     def write_dated_df(self, df):
@@ -64,6 +64,11 @@ class DatedDfStorage(DatedStorage):
 
 if __name__ == '__main__':
     # test for dated DF storage
+    ch = logging.StreamHandler()
+    formatter = logging.Formatter('%(levelname)s:%(name)s: %(message)s')
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    logger.propagate = False
     df_test = pd.DataFrame({'a': [1, 2, 3]})
     date_test = datetime.date(2018, 12, 30)
     dir_test = './data'

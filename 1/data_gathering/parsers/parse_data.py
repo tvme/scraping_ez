@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
 import pandas as pd
-from bs4 import BeautifulSoup
 import time
 
 from datetime import datetime
@@ -142,29 +141,23 @@ def parse_ticker_data(tic_str, q_shift, date_str_lst, metric_str_lst, base_url):
     return df_out
 
 
-def get_history_data(current_date, tics_df):
+def get_history_data(current_date, tics_row):
     '''
 
     :param current_date: текущая дата
     :param tics_df: df загруженный из файла, index - tic
-    :return: DataFrame, colunms.multiinrx
+    :return: DataFrame, colunms.MultiIndex
     '''
-    tics_df.set_index('tic', inplace=True)
-    tic_df_list = []
-    for index, row in tics_df.iterrows():
-        ticker = index
-        qrt_start = ez2qurter(row['Qurter'])
-        q_shift = compute_q_shift(current_dt=current_date, company_qrt=qrt_start)
-        date_str_lst = get_quarter_page_list(qrt_start)
-        tic_df_list.append(parse_ticker_data(tic_str=ticker,
-                                             q_shift=q_shift,
-                                             date_str_lst=date_str_lst,
-                                             metric_str_lst=METRICS,
-                                             base_url=URL))
-    return pd.concat(tic_df_list, axis=1)  # склеили тикеры
-
-
-
+    ticker = tics_row.name
+    qrt_start = ez2qurter(tics_row['Qurter'])
+    q_shift = compute_q_shift(current_dt=current_date, company_qrt=qrt_start)
+    date_str_lst = get_quarter_page_list(qrt_start)
+    tic_df = parse_ticker_data(tic_str=ticker,
+                                         q_shift=q_shift,
+                                         date_str_lst=date_str_lst,
+                                         metric_str_lst=METRICS,
+                                         base_url=URL)
+    return tic_df
 
 
 if __name__ == '__main__':
@@ -174,11 +167,13 @@ if __name__ == '__main__':
     tickers_storage = DatedDfStorage(date=date_tickers_parsing,
                                      suffix='tickers_test',  # суфикс для тестового файла
                                      dir_name='C:\\Users\\ersan\\PycharmProjects\\DS_OTUS\\1\\data_gathering\\data\\tickers')
-    tickers_df = tickers_storage.read_dated_df()
-    df = get_history_data(dt_str, tickers_df)
-
+    tickers_df = tickers_storage.read_dated_df(index_col='tic')
+    df_list = []
+    for _, row in tickers_df.iterrows():
+        df_list.append(get_history_data(dt_str, row))
+    df = pd.concat(df_list, axis=1)
     print('Completed {n} quarters for {m} tickers download in {t} seconds'.format(n=df.shape[0] / 16,
-                                                                                  m=df.shape[1] / 2,
+                                                                                  m=df.shape[1] / 3,
                                                                                   t=time.time() - start))
 
     tickers_storage = DatedDfStorage(date=date.today(),
